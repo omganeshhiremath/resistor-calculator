@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4-Band Resistor Color Code Calculator | ECE Lab Tool</title>
+  <title>Resistor Color Code Calculator | ECE Lab Suite</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,12 +21,70 @@
       },
     };
   </script>
+  <style>
+    /* 1. Staggered Card Entrance Animation */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-card {
+      opacity: 0;
+      animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .delay-1 { animation-delay: 0.05s; }
+    .delay-2 { animation-delay: 0.14s; }
+    .delay-3 { animation-delay: 0.22s; }
+    .delay-4 { animation-delay: 0.30s; }
+
+    /* 2. Smooth Band Color Morph, Position Shift & Pulse */
+    .resistor-band {
+      transition: fill 0.35s ease, x 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+      transform-box: fill-box;
+      transform-origin: center;
+      cursor: pointer;
+    }
+    .resistor-band:hover {
+      filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 255, 255, 0.25));
+    }
+    .band-pop {
+      transform: scaleY(1.09);
+    }
+
+    /* 3. Live Ohm's Law Electron Flow Animation */
+    @keyframes flowElectrons {
+      from {
+        stroke-dashoffset: 48;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    .electron-stream {
+      animation: flowElectrons 2.4s linear infinite;
+    }
+
+    /* 4. Subtle Card Hover Lift */
+    .lab-card {
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .lab-card:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      box-shadow: 0 12px 32px -10px rgba(6, 182, 212, 0.12);
+    }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-cyan-500/30">
 
-  <!-- Top Navigation Bar -->
-  <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-md sticky top-0 z-20">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <!-- Top Navigation & Action Bar -->
+  <header class="border-b border-slate-800/80 bg-slate-900/75 backdrop-blur-md sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -34,24 +92,53 @@
           </svg>
         </div>
         <div>
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Resistor Color Code Calculator</h1>
-            <span class="px-2 py-0.5 text-xs font-mono font-medium rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">4-Band EIA</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">Resistor Color Code Calculator</h1>
+            <span id="modeBadge" class="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">4-Band EIA</span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-400">Interactive ECE Lab Utility &amp; Resistance Formula Verifier</p>
+          <p class="text-xs text-slate-400">Interactive ECE Lab Utility &amp; Tolerance Verifier</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5">
-        <button id="copyBtn" type="button" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer">
-          <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Toolbar Buttons -->
+      <div class="flex items-center flex-wrap gap-2">
+        <!-- 4-Band / 5-Band Toggle -->
+        <div class="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800 mr-1" role="group" aria-label="Resistor Band Mode">
+          <button id="mode4Btn" type="button" class="px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition cursor-pointer">
+            4-Band
+          </button>
+          <button id="mode5Btn" type="button" class="px-2.5 py-1.5 rounded-md text-xs font-mono font-medium text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            5-Band
+          </button>
+        </div>
+
+        <button id="copyBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
           <span id="copyBtnText">Copy Result</span>
         </button>
-        <button id="resetBtn" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 transition cursor-pointer">
-          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+        <button id="shareBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          <span id="shareBtnText">Share Link</span>
+        </button>
+
+        <button id="pngBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span id="pngBtnText">Save PNG</span>
+        </button>
+
+        <button id="resetBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
@@ -64,18 +151,26 @@
   <!-- Main Workspace -->
   <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
 
-    <!-- Visual Resistor Preview & Band Selectors -->
-    <section class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
-      <div class="flex items-center justify-between gap-2 mb-4">
-        <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Component Preview</span>
-        <span id="bandSummaryPill" class="px-3 py-1 rounded-full text-xs font-mono bg-slate-800/90 text-slate-200 border border-slate-700">
-          Yellow &bull; Violet &bull; Red &bull; Gold
-        </span>
+    <!-- 1. Interactive SVG Resistor Preview & Band Selectors -->
+    <section class="lab-card animate-card delay-1 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Component Preview</span>
+          <span class="hidden sm:inline-block text-[11px] font-mono text-slate-500">(Click any band on resistor to cycle)</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span id="flowSpeedLabel" class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+            I-Flow: Moderate
+          </span>
+          <span id="bandSummaryPill" class="px-3 py-1 rounded-full text-xs font-mono bg-slate-800/90 text-slate-200 border border-slate-700">
+            Yellow &bull; Violet &bull; Red &bull; Gold
+          </span>
+        </div>
       </div>
 
-      <!-- Interactive SVG Resistor -->
-      <div class="w-full overflow-x-auto py-3">
-        <svg viewBox="0 0 680 185" class="w-full max-w-2xl mx-auto h-auto select-none" role="img" aria-label="4-Band Resistor Diagram">
+      <!-- Interactive SVG Resistor with Electron Flow -->
+      <div class="w-full overflow-x-auto py-2">
+        <svg id="resistorSvg" viewBox="0 0 680 185" class="w-full max-w-2xl mx-auto h-auto select-none" role="img" aria-label="Interactive Resistor Diagram">
           <defs>
             <linearGradient id="leadGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#94a3b8" />
@@ -104,35 +199,63 @@
           <rect x="40" y="75" width="135" height="10" rx="3" fill="url(#leadGrad)" />
           <rect x="505" y="75" width="135" height="10" rx="3" fill="url(#leadGrad)" />
 
+          <!-- Ohm's Law Electron Flow Pulses along Leads -->
+          <line id="electronLeadLeft" x1="44" y1="80" x2="170" y2="80" stroke="#22d3ee" stroke-width="3" stroke-dasharray="5 19" stroke-linecap="round" class="electron-stream" />
+          <line id="electronLeadRight" x1="510" y1="80" x2="636" y2="80" stroke="#22d3ee" stroke-width="3" stroke-dasharray="5 19" stroke-linecap="round" class="electron-stream" />
+
           <!-- Contoured Ceramic Resistor Body -->
           <path d="M 172 46 C 172 37, 182 34, 200 34 L 222 34 C 232 34, 238 40, 248 40 L 432 40 C 442 40, 448 34, 458 34 L 480 34 C 498 34, 508 37, 508 46 L 508 114 C 508 123, 498 126, 480 126 L 458 126 C 448 126, 442 120, 432 120 L 248 120 C 238 120, 232 126, 222 126 L 200 126 C 182 126, 172 123, 172 114 Z" fill="url(#bodyGrad)" stroke="#78613c" stroke-width="1.5" />
 
-          <!-- Color Bands -->
-          <rect id="band1Rect" x="212" y="34.5" width="22" height="91" rx="2" fill="#eab308" />
-          <rect id="band2Rect" x="272" y="40.5" width="22" height="79" rx="1.5" fill="#7c3aed" />
-          <rect id="band3Rect" x="332" y="40.5" width="22" height="79" rx="1.5" fill="#dc2626" />
-          <rect id="band4Rect" x="444" y="34.5" width="22" height="91" rx="2" fill="url(#goldBand)" />
+          <!-- Clickable Color Bands -->
+          <rect id="band1Rect" class="resistor-band" x="212" y="34.5" width="22" height="91" rx="2" fill="#eab308">
+            <title>Click to cycle Band 1</title>
+          </rect>
+          <rect id="band2Rect" class="resistor-band" x="272" y="40.5" width="22" height="79" rx="1.5" fill="#7c3aed">
+            <title>Click to cycle Band 2</title>
+          </rect>
+          <rect id="band3Rect" class="resistor-band" x="332" y="40.5" width="22" height="79" rx="1.5" fill="#dc2626">
+            <title>Click to cycle Band 3</title>
+          </rect>
+          <rect id="band4Rect" class="resistor-band" x="444" y="34.5" width="22" height="91" rx="2" fill="url(#goldBand)">
+            <title>Click to cycle Band 4</title>
+          </rect>
+          <rect id="band5Rect" class="resistor-band hidden" x="446" y="34.5" width="20" height="91" rx="2" fill="url(#goldBand)">
+            <title>Click to cycle Band 5</title>
+          </rect>
 
           <!-- Subtle Top Specular Highlight -->
-          <path d="M 185 43 L 495 43" stroke="#ffffff" stroke-opacity="0.28" stroke-width="3" stroke-linecap="round" />
+          <path d="M 185 43 L 495 43" stroke="#ffffff" stroke-opacity="0.28" stroke-width="3" stroke-linecap="round" pointer-events="none" />
 
           <!-- Pointer Lines & Labels -->
-          <line x1="223" y1="128" x2="223" y2="148" stroke="#64748b" stroke-width="1.2" />
-          <text x="223" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">1st Digit</text>
+          <g id="ptr1Group">
+            <line id="ptr1Line" x1="223" y1="128" x2="223" y2="148" stroke="#64748b" stroke-width="1.2" />
+            <text id="ptr1Text" x="223" y="164" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">1st Digit</text>
+          </g>
 
-          <line x1="283" y1="122" x2="283" y2="148" stroke="#64748b" stroke-width="1.2" />
-          <text x="283" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">2nd Digit</text>
+          <g id="ptr2Group">
+            <line id="ptr2Line" x1="283" y1="122" x2="283" y2="148" stroke="#64748b" stroke-width="1.2" />
+            <text id="ptr2Text" x="283" y="164" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">2nd Digit</text>
+          </g>
 
-          <line x1="343" y1="122" x2="343" y2="148" stroke="#64748b" stroke-width="1.2" />
-          <text x="349" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">Multiplier</text>
+          <g id="ptr3Group">
+            <line id="ptr3Line" x1="343" y1="122" x2="343" y2="148" stroke="#64748b" stroke-width="1.2" />
+            <text id="ptr3Text" x="349" y="164" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">Multiplier</text>
+          </g>
 
-          <line x1="455" y1="128" x2="455" y2="148" stroke="#64748b" stroke-width="1.2" />
-          <text x="455" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">Tolerance</text>
+          <g id="ptr4Group">
+            <line id="ptr4Line" x1="455" y1="128" x2="455" y2="148" stroke="#64748b" stroke-width="1.2" />
+            <text id="ptr4Text" x="455" y="164" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">Tolerance</text>
+          </g>
+
+          <g id="ptr5Group" class="hidden">
+            <line id="ptr5Line" x1="456" y1="128" x2="456" y2="148" stroke="#64748b" stroke-width="1.2" />
+            <text id="ptr5Text" x="456" y="164" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">Tolerance</text>
+          </g>
         </svg>
       </div>
 
-      <!-- Four Band Dropdown Selectors -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-slate-800/80">
+      <!-- Band Dropdown Selectors -->
+      <div id="bandSelectGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-slate-800/80">
         <div>
           <label for="band1Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
             <span>Band 1 &bull; 1st Digit</span>
@@ -149,28 +272,81 @@
           <select id="band2Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
         </div>
 
-        <div>
-          <label for="band3Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
-            <span>Band 3 &bull; Multiplier</span>
-            <span id="dot3" class="w-3 h-3 rounded-full border border-white/20 bg-red-600"></span>
+        <div id="digit3Col" class="hidden">
+          <label for="bandDigit3Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
+            <span>Band 3 &bull; 3rd Digit</span>
+            <span id="dotDigit3" class="w-3 h-3 rounded-full border border-white/20 bg-zinc-900"></span>
           </label>
-          <select id="band3Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
+          <select id="bandDigit3Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
         </div>
 
         <div>
-          <label for="band4Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
-            <span>Band 4 &bull; Tolerance</span>
-            <span id="dot4" class="w-3 h-3 rounded-full border border-white/20 bg-amber-400"></span>
+          <label for="bandMultSelect" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
+            <span id="multLabel">Band 3 &bull; Multiplier</span>
+            <span id="dotMult" class="w-3 h-3 rounded-full border border-white/20 bg-red-600"></span>
           </label>
-          <select id="band4Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
+          <select id="bandMultSelect" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
+        </div>
+
+        <div>
+          <label for="bandTolSelect" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
+            <span id="tolLabel">Band 4 &bull; Tolerance</span>
+            <span id="dotTol" class="w-3 h-3 rounded-full border border-white/20 bg-amber-400"></span>
+          </label>
+          <select id="bandTolSelect" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
         </div>
       </div>
     </section>
 
-    <!-- Results & Formula Breakdown Grid -->
-    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- Left: Nominal Resistance & Multimeter Range -->
-      <div class="lg:col-span-5 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 flex flex-col justify-between shadow-xl">
+    <!-- 2. Reverse Calculator & Multimeter Tolerance Checker Tools -->
+    <section class="animate-card delay-2 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Reverse Calculator (Ohms -> Color Bands) -->
+      <div class="lab-card rounded-2xl bg-slate-900/80 border border-slate-800 p-5 shadow-xl">
+        <div class="flex items-center justify-between gap-2 mb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <h2 class="text-xs font-mono uppercase tracking-wider text-slate-300">Reverse Lookup (Ohms &rarr; Colors)</h2>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500">Supports 4.7k, 4k7, 330, 1M</span>
+        </div>
+
+        <form id="reverseForm" class="flex gap-2">
+          <input id="reverseInput" type="text" placeholder="Type resistance (e.g. 10k, 4.7k, 330)..." class="flex-1 rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-400 transition" />
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-mono font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition cursor-pointer shrink-0">
+            Find Bands
+          </button>
+        </form>
+        <p id="reverseStatus" class="text-xs font-mono text-slate-400 mt-2.5">
+          Enter any target resistance to highlight matching color bands.
+        </p>
+      </div>
+
+      <!-- Multimeter Tolerance Pass/Fail Checker -->
+      <div class="lab-card rounded-2xl bg-slate-900/80 border border-slate-800 p-5 shadow-xl">
+        <div class="flex items-center justify-between gap-2 mb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <h2 class="text-xs font-mono uppercase tracking-wider text-slate-300">Multimeter Spec Verifier</h2>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500">Lab Pass / Fail Check</span>
+        </div>
+
+        <div class="flex gap-2">
+          <input id="measuredInput" type="text" placeholder="Enter measured reading (e.g. 4.58k)..." class="flex-1 rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition" />
+          <button id="clearMeasuredBtn" type="button" class="px-3 py-2 rounded-xl text-xs font-mono text-slate-400 hover:text-slate-200 bg-slate-950 border border-slate-800 transition cursor-pointer">
+            Clear
+          </button>
+        </div>
+        <div id="toleranceResultBox" class="mt-2.5 text-xs font-mono text-slate-400">
+          Enter your multimeter reading to verify if the component is within tolerance.
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Nominal Resistance & Step-by-Step Formula Breakdown -->
+    <section class="animate-card delay-3 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left: Nominal Resistance & Bounds -->
+      <div class="lab-card lg:col-span-5 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 flex flex-col justify-between shadow-xl">
         <div>
           <div class="flex items-center justify-between gap-2 mb-3">
             <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Nominal Resistance</span>
@@ -183,7 +359,7 @@
           </div>
 
           <p class="text-xs text-slate-400 leading-relaxed mt-2">
-            Expected multimeter measurement range due to manufacturing tolerance:
+            Expected multimeter measurement window due to manufacturing tolerance:
           </p>
         </div>
 
@@ -200,13 +376,13 @@
       </div>
 
       <!-- Right: Step-by-Step Formula Breakdown -->
-      <div class="lg:col-span-7 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
+      <div class="lab-card lg:col-span-7 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
         <div class="flex items-center justify-between gap-2 flex-wrap mb-4">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
             <h2 class="text-xs font-mono uppercase tracking-wider text-slate-300">Step-by-Step Formula Breakdown</h2>
           </div>
-          <span class="text-xs font-mono text-slate-400">R = ((B1 &times; 10) + B2) &times; M</span>
+          <span id="formulaEquation" class="text-xs font-mono text-slate-400">R = ((B1 &times; 10) + B2) &times; M</span>
         </div>
 
         <div class="space-y-2.5 text-xs sm:text-sm font-mono">
@@ -215,7 +391,7 @@
             <span id="step1Text" class="text-slate-100 font-semibold">(4 &times; 10) + 7 = 47</span>
           </div>
           <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-950/90 border border-slate-800/90 px-3.5 py-2.5">
-            <span class="text-slate-400">2. Apply Band 3 Multiplier:</span>
+            <span class="text-slate-400">2. Apply Multiplier Band:</span>
             <span id="step2Text" class="text-cyan-400 font-semibold">47 &times; 100 = 4,700 &Omega; (4.7 k&Omega;)</span>
           </div>
           <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-950/90 border border-slate-800/90 px-3.5 py-2.5">
@@ -230,18 +406,19 @@
       </div>
     </section>
 
-    <!-- EIA Reference Table -->
-    <section class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
-      <h2 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-4">Standard EIA 4-Band Color Reference Chart</h2>
+    <!-- 4. EIA Reference Table -->
+    <section class="lab-card animate-card delay-4 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
+      <h2 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-4">Standard EIA Color Reference Chart</h2>
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-xs sm:text-sm">
           <thead>
             <tr class="border-b border-slate-800 text-slate-400 font-mono text-xs">
               <th class="py-2.5 px-3">Color</th>
-              <th class="py-2.5 px-3">Band 1 (1st Digit)</th>
-              <th class="py-2.5 px-3">Band 2 (2nd Digit)</th>
-              <th class="py-2.5 px-3">Band 3 (Multiplier)</th>
-              <th class="py-2.5 px-3">Band 4 (Tolerance)</th>
+              <th class="py-2.5 px-3">1st Digit</th>
+              <th class="py-2.5 px-3">2nd Digit</th>
+              <th id="tableDigit3Col" class="py-2.5 px-3 hidden">3rd Digit</th>
+              <th class="py-2.5 px-3">Multiplier</th>
+              <th class="py-2.5 px-3">Tolerance</th>
             </tr>
           </thead>
           <tbody id="referenceTableBody" class="divide-y divide-slate-800/60 font-mono text-slate-200"></tbody>
@@ -254,19 +431,26 @@
   <script>
     // 1. STANDARD EIA RESISTOR COLOR DATA
     const COLOR_DATA = [
-      { key: 'black',  name: 'Black',  hex: '#18181b', digit: 0, mult: 1,          multLabel: '×1 Ω (10⁰)',      tol: null },
-      { key: 'brown',  name: 'Brown',  hex: '#78350f', digit: 1, mult: 10,         multLabel: '×10 Ω (10¹)',     tol: 1 },
-      { key: 'red',    name: 'Red',    hex: '#dc2626', digit: 2, mult: 100,        multLabel: '×100 Ω (10²)',    tol: 2 },
-      { key: 'orange', name: 'Orange', hex: '#ea580c', digit: 3, mult: 1000,       multLabel: '×1 kΩ (10³)',     tol: null },
-      { key: 'yellow', name: 'Yellow', hex: '#eab308', digit: 4, mult: 10000,      multLabel: '×10 kΩ (10⁴)',    tol: null },
-      { key: 'green',  name: 'Green',  hex: '#16a34a', digit: 5, mult: 100000,     multLabel: '×100 kΩ (10⁵)',   tol: 0.5 },
-      { key: 'blue',   name: 'Blue',   hex: '#2563eb', digit: 6, mult: 1000000,    multLabel: '×1 MΩ (10⁶)',     tol: 0.25 },
-      { key: 'violet', name: 'Violet', hex: '#7c3aed', digit: 7, mult: 10000000,   multLabel: '×10 MΩ (10⁷)',    tol: 0.1 },
-      { key: 'gray',   name: 'Gray',   hex: '#64748b', digit: 8, mult: 100000000,  multLabel: '×100 MΩ (10⁸)',   tol: 0.05 },
-      { key: 'white',  name: 'White',  hex: '#f8fafc', digit: 9, mult: 1000000000, multLabel: '×1 GΩ (10⁹)',     tol: null },
-      { key: 'gold',   name: 'Gold',   hex: '#eab308', svgFill: 'url(#goldBand)',   digit: null, mult: 0.1,  multLabel: '×0.1 Ω (10⁻¹)', tol: 5 },
-      { key: 'silver', name: 'Silver', hex: '#cbd5e1', svgFill: 'url(#silverBand)', digit: null, mult: 0.01, multLabel: '×0.01 Ω (10⁻²)', tol: 10 }
+      { key: 'black',  name: 'Black',  hex: '#18181b', digit: 0, exp: 0,  mult: 1,          multLabel: '×1 Ω (10⁰)',      tol: null },
+      { key: 'brown',  name: 'Brown',  hex: '#78350f', digit: 1, exp: 1,  mult: 10,         multLabel: '×10 Ω (10¹)',     tol: 1 },
+      { key: 'red',    name: 'Red',    hex: '#dc2626', digit: 2, exp: 2,  mult: 100,        multLabel: '×100 Ω (10²)',    tol: 2 },
+      { key: 'orange', name: 'Orange', hex: '#ea580c', digit: 3, exp: 3,  mult: 1000,       multLabel: '×1 kΩ (10³)',     tol: null },
+      { key: 'yellow', name: 'Yellow', hex: '#eab308', digit: 4, exp: 4,  mult: 10000,      multLabel: '×10 kΩ (10⁴)',    tol: null },
+      { key: 'green',  name: 'Green',  hex: '#16a34a', digit: 5, exp: 5,  mult: 100000,     multLabel: '×100 kΩ (10⁵)',   tol: 0.5 },
+      { key: 'blue',   name: 'Blue',   hex: '#2563eb', digit: 6, exp: 6,  mult: 1000000,    multLabel: '×1 MΩ (10⁶)',     tol: 0.25 },
+      { key: 'violet', name: 'Violet', hex: '#7c3aed', digit: 7, exp: 7,  mult: 10000000,   multLabel: '×10 MΩ (10⁷)',    tol: 0.1 },
+      { key: 'gray',   name: 'Gray',   hex: '#64748b', digit: 8, exp: 8,  mult: 100000000,  multLabel: '×100 MΩ (10⁸)',   tol: 0.05 },
+      { key: 'white',  name: 'White',  hex: '#f8fafc', digit: 9, exp: 9,  mult: 1000000000, multLabel: '×1 GΩ (10⁹)',     tol: null },
+      { key: 'gold',   name: 'Gold',   hex: '#eab308', svgFill: 'url(#goldBand)',   digit: null, exp: -1, mult: 0.1,  multLabel: '×0.1 Ω (10⁻¹)', tol: 5 },
+      { key: 'silver', name: 'Silver', hex: '#cbd5e1', svgFill: 'url(#silverBand)', digit: null, exp: -2, mult: 0.01, multLabel: '×0.01 Ω (10⁻²)', tol: 10 }
     ];
+
+    let bandMode = 4; // 4 or 5
+    let currentNominalOhms = 4700;
+    let currentMinOhms = 4465;
+    let currentMaxOhms = 4935;
+    let currentTolerancePct = 5;
+    let rollAnimFrame = null;
 
     // 2. UNIT & NUMBER FORMATTERS
     function formatOhms(value) {
@@ -280,12 +464,39 @@
       return Number(value.toFixed(3)).toLocaleString('en-US');
     }
 
+    // Parse strings like "4.7k", "4k7", "330", "1.5M", "2R2" into raw Ohms
+    function parseResistanceInput(raw) {
+      if (!raw) return null;
+      let cleaned = raw.trim().replace(/ohms?|Ω|,|\s+/gi, '');
+      if (!cleaned) return null;
+
+      // Engineering shorthand (e.g. 4k7 -> 4.7k, 2R2 -> 2.2)
+      const engMatch = cleaned.match(/^(\d+)([rRkKmMgG])(\d+)$/);
+      if (engMatch) {
+        const num = parseFloat(`${engMatch[1]}.${engMatch[3]}`);
+        const unit = engMatch[2].toLowerCase();
+        const mult = unit === 'k' ? 1e3 : unit === 'm' ? 1e6 : unit === 'g' ? 1e9 : 1;
+        return num * mult;
+      }
+
+      const stdMatch = cleaned.match(/^([0-9]*\.?[0-9]+)([rRkKmMgG])?$/);
+      if (!stdMatch) return null;
+
+      const value = parseFloat(stdMatch[1]);
+      if (isNaN(value) || value <= 0) return null;
+
+      const suffix = (stdMatch[2] || '').toLowerCase();
+      const multiplier = suffix === 'k' ? 1e3 : suffix === 'm' ? 1e6 : suffix === 'g' ? 1e9 : 1;
+      return value * multiplier;
+    }
+
     // 3. POPULATE DROPDOWNS & REFERENCE TABLE
     function populateDropdowns() {
       const b1 = document.getElementById('band1Select');
       const b2 = document.getElementById('band2Select');
-      const b3 = document.getElementById('band3Select');
-      const b4 = document.getElementById('band4Select');
+      const b3 = document.getElementById('bandDigit3Select');
+      const bm = document.getElementById('bandMultSelect');
+      const bt = document.getElementById('bandTolSelect');
 
       COLOR_DATA.forEach((c) => {
         if (c.digit !== null && c.digit !== 0) {
@@ -293,18 +504,20 @@
         }
         if (c.digit !== null) {
           b2.add(new Option(`${c.name} (${c.digit})`, c.key));
+          b3.add(new Option(`${c.name} (${c.digit})`, c.key));
         }
         if (c.mult !== null) {
-          b3.add(new Option(`${c.name} (${c.multLabel})`, c.key));
+          bm.add(new Option(`${c.name} (${c.multLabel})`, c.key));
         }
         if (c.tol !== null) {
-          b4.add(new Option(`${c.name} (±${c.tol}%)`, c.key));
+          bt.add(new Option(`${c.name} (±${c.tol}%)`, c.key));
         }
       });
     }
 
     function populateReferenceTable() {
       const tbody = document.getElementById('referenceTableBody');
+      tbody.innerHTML = '';
       COLOR_DATA.forEach((c) => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-800/40 transition';
@@ -315,6 +528,7 @@
           </td>
           <td class="py-2 px-3 text-slate-300">${c.digit !== null && c.digit !== 0 ? c.digit : '—'}</td>
           <td class="py-2 px-3 text-slate-300">${c.digit !== null ? c.digit : '—'}</td>
+          <td class="py-2 px-3 text-slate-300 ${bandMode === 5 ? '' : 'hidden'}">${c.digit !== null ? c.digit : '—'}</td>
           <td class="py-2 px-3 text-cyan-400">${c.multLabel}</td>
           <td class="py-2 px-3 text-amber-300">${c.tol !== null ? `±${c.tol}%` : '—'}</td>
         `;
@@ -322,83 +536,488 @@
       });
     }
 
-    // 4. CORE CALCULATION & UI UPDATE
-    function updateCalculator() {
+    // 4. MODE SWITCHING (4-BAND vs 5-BAND)
+    function setBandMode(mode, skipUpdate = false) {
+      bandMode = mode;
+      const is5 = mode === 5;
+
+      // Toggle header buttons & badge
+      document.getElementById('modeBadge').textContent = is5 ? '5-Band Precision' : '4-Band EIA';
+      document.getElementById('mode4Btn').className = !is5
+        ? 'px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition cursor-pointer'
+        : 'px-2.5 py-1.5 rounded-md text-xs font-mono font-medium text-slate-400 hover:text-slate-200 transition cursor-pointer';
+      document.getElementById('mode5Btn').className = is5
+        ? 'px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition cursor-pointer'
+        : 'px-2.5 py-1.5 rounded-md text-xs font-mono font-medium text-slate-400 hover:text-slate-200 transition cursor-pointer';
+
+      // Adjust dropdown grid & labels
+      const grid = document.getElementById('bandSelectGrid');
+      grid.className = is5
+        ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 pt-3 border-t border-slate-800/80'
+        : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-slate-800/80';
+
+      document.getElementById('digit3Col').classList.toggle('hidden', !is5);
+      document.getElementById('multLabel').innerHTML = is5 ? 'Band 4 &bull; Multiplier' : 'Band 3 &bull; Multiplier';
+      document.getElementById('tolLabel').innerHTML = is5 ? 'Band 5 &bull; Tolerance' : 'Band 4 &bull; Tolerance';
+      document.getElementById('tableDigit3Col').classList.toggle('hidden', !is5);
+      document.getElementById('formulaEquation').innerHTML = is5
+        ? 'R = ((B1 &times; 100) + (B2 &times; 10) + B3) &times; M'
+        : 'R = ((B1 &times; 10) + B2) &times; M';
+
+      // Reposition SVG Bands & Pointer Labels
+      const r1 = document.getElementById('band1Rect');
+      const r2 = document.getElementById('band2Rect');
+      const r3 = document.getElementById('band3Rect');
+      const r4 = document.getElementById('band4Rect');
+      const r5 = document.getElementById('band5Rect');
+
+      if (is5) {
+        r1.setAttribute('x', '206'); r1.setAttribute('width', '20');
+        r2.setAttribute('x', '252'); r2.setAttribute('width', '20');
+        r3.setAttribute('x', '298'); r3.setAttribute('width', '20');
+        r4.setAttribute('x', '344'); r4.setAttribute('width', '20');
+        r4.setAttribute('y', '40.5'); r4.setAttribute('height', '79');
+        r5.classList.remove('hidden');
+
+        setPointer('ptr1', 216, 128, '1st');
+        setPointer('ptr2', 262, 122, '2nd');
+        setPointer('ptr3', 308, 122, '3rd');
+        setPointer('ptr4', 354, 122, 'Mult');
+        document.getElementById('ptr5Group').classList.remove('hidden');
+        setPointer('ptr5', 456, 128, 'Tol');
+      } else {
+        r1.setAttribute('x', '212'); r1.setAttribute('width', '22');
+        r2.setAttribute('x', '272'); r2.setAttribute('width', '22');
+        r3.setAttribute('x', '332'); r3.setAttribute('width', '22');
+        r4.setAttribute('x', '444'); r4.setAttribute('width', '22');
+        r4.setAttribute('y', '34.5'); r4.setAttribute('height', '91');
+        r5.classList.add('hidden');
+
+        setPointer('ptr1', 223, 128, '1st Digit');
+        setPointer('ptr2', 283, 122, '2nd Digit');
+        setPointer('ptr3', 343, 122, 'Multiplier');
+        setPointer('ptr4', 455, 128, 'Tolerance');
+        document.getElementById('ptr5Group').classList.add('hidden');
+      }
+
+      populateReferenceTable();
+      if (!skipUpdate) updateCalculator(true);
+    }
+
+    function setPointer(prefix, x, y1, label) {
+      const line = document.getElementById(`${prefix}Line`);
+      const text = document.getElementById(`${prefix}Text`);
+      line.setAttribute('x1', x);
+      line.setAttribute('x2', x);
+      line.setAttribute('y1', y1);
+      text.setAttribute('x', x);
+      text.textContent = label;
+    }
+
+    // 5. ANIMATION HELPERS
+    function triggerBandPop(bandNumbers) {
+      bandNumbers.forEach((num) => {
+        const el = document.getElementById(`band${num}Rect`);
+        if (!el) return;
+        el.classList.remove('band-pop');
+        void el.offsetWidth; // Force reflow to restart animation
+        el.classList.add('band-pop');
+        setTimeout(() => el.classList.remove('band-pop'), 260);
+      });
+    }
+
+    function animateResistanceRoll(fromVal, toVal) {
+      if (rollAnimFrame) cancelAnimationFrame(rollAnimFrame);
+      const displayEl = document.getElementById('formattedResistance');
+      if (Math.abs(fromVal - toVal) < 1e-6) {
+        displayEl.textContent = formatOhms(toVal);
+        return;
+      }
+
+      const duration = 240;
+      const startTime = performance.now();
+
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        // Ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = fromVal + (toVal - fromVal) * eased;
+        displayEl.textContent = formatOhms(current);
+
+        if (progress < 1) {
+          rollAnimFrame = requestAnimationFrame(step);
+        } else {
+          displayEl.textContent = formatOhms(toVal);
+        }
+      }
+
+      rollAnimFrame = requestAnimationFrame(step);
+    }
+
+    function updateElectronFlow(ohms) {
+      const logR = Math.max(0, Math.log10(Math.max(0.1, ohms)));
+      const duration = Math.min(7.5, Math.max(0.28, 0.28 + logR * 0.62));
+
+      document.getElementById('electronLeadLeft').style.animationDuration = `${duration.toFixed(2)}s`;
+      document.getElementById('electronLeadRight').style.animationDuration = `${duration.toFixed(2)}s`;
+
+      const labelEl = document.getElementById('flowSpeedLabel');
+      if (ohms < 100) {
+        labelEl.textContent = 'I-Flow: High Current';
+      } else if (ohms < 100000) {
+        labelEl.textContent = 'I-Flow: Moderate';
+      } else {
+        labelEl.textContent = 'I-Flow: Low Trickle';
+      }
+    }
+
+    // 6. CORE CALCULATION & UI UPDATE
+    function updateCalculator(animate = true, poppedBands = []) {
       const c1 = COLOR_DATA.find((c) => c.key === document.getElementById('band1Select').value);
       const c2 = COLOR_DATA.find((c) => c.key === document.getElementById('band2Select').value);
-      const c3 = COLOR_DATA.find((c) => c.key === document.getElementById('band3Select').value);
-      const c4 = COLOR_DATA.find((c) => c.key === document.getElementById('band4Select').value);
+      const c3Digit = COLOR_DATA.find((c) => c.key === document.getElementById('bandDigit3Select').value);
+      const cMult = COLOR_DATA.find((c) => c.key === document.getElementById('bandMultSelect').value);
+      const cTol = COLOR_DATA.find((c) => c.key === document.getElementById('bandTolSelect').value);
 
-      // Update SVG band colors & indicator dots
-      document.getElementById('band1Rect').setAttribute('fill', c1.svgFill || c1.hex);
-      document.getElementById('band2Rect').setAttribute('fill', c2.svgFill || c2.hex);
-      document.getElementById('band3Rect').setAttribute('fill', c3.svgFill || c3.hex);
-      document.getElementById('band4Rect').setAttribute('fill', c4.svgFill || c4.hex);
-
+      // Update selector dots
       document.getElementById('dot1').style.backgroundColor = c1.hex;
       document.getElementById('dot2').style.backgroundColor = c2.hex;
-      document.getElementById('dot3').style.backgroundColor = c3.hex;
-      document.getElementById('dot4').style.backgroundColor = c4.hex;
+      document.getElementById('dotDigit3').style.backgroundColor = c3Digit.hex;
+      document.getElementById('dotMult').style.backgroundColor = cMult.hex;
+      document.getElementById('dotTol').style.backgroundColor = cTol.hex;
 
-      document.getElementById('bandSummaryPill').textContent = `${c1.name} • ${c2.name} • ${c3.name} • ${c4.name}`;
+      // Update SVG bands
+      document.getElementById('band1Rect').setAttribute('fill', c1.svgFill || c1.hex);
+      document.getElementById('band2Rect').setAttribute('fill', c2.svgFill || c2.hex);
 
-      // Resistance math: ((B1 * 10) + B2) * Multiplier
-      const sigDigits = (c1.digit * 10) + c2.digit;
-      const nominalOhms = sigDigits * c3.mult;
-      const marginOhms = nominalOhms * (c4.tol / 100);
+      let sigDigits;
+      if (bandMode === 5) {
+        document.getElementById('band3Rect').setAttribute('fill', c3Digit.svgFill || c3Digit.hex);
+        document.getElementById('band4Rect').setAttribute('fill', cMult.svgFill || cMult.hex);
+        document.getElementById('band5Rect').setAttribute('fill', cTol.svgFill || cTol.hex);
+        document.getElementById('bandSummaryPill').textContent = `${c1.name} • ${c2.name} • ${c3Digit.name} • ${cMult.name} • ${cTol.name}`;
+        sigDigits = (c1.digit * 100) + (c2.digit * 10) + c3Digit.digit;
+      } else {
+        document.getElementById('band3Rect').setAttribute('fill', cMult.svgFill || cMult.hex);
+        document.getElementById('band4Rect').setAttribute('fill', cTol.svgFill || cTol.hex);
+        document.getElementById('bandSummaryPill').textContent = `${c1.name} • ${c2.name} • ${cMult.name} • ${cTol.name}`;
+        sigDigits = (c1.digit * 10) + c2.digit;
+      }
+
+      if (poppedBands.length > 0) {
+        triggerBandPop(poppedBands);
+      }
+
+      const nominalOhms = sigDigits * cMult.mult;
+      const marginOhms = nominalOhms * (cTol.tol / 100);
       const minOhms = nominalOhms - marginOhms;
       const maxOhms = nominalOhms + marginOhms;
 
+      const prevOhms = currentNominalOhms;
+      currentNominalOhms = nominalOhms;
+      currentMinOhms = minOhms;
+      currentMaxOhms = maxOhms;
+      currentTolerancePct = cTol.tol;
+
       const formattedNominal = formatOhms(nominalOhms);
 
-      document.getElementById('formattedResistance').textContent = formattedNominal;
-      document.getElementById('toleranceDisplay').textContent = `±${c4.tol}%`;
+      if (animate) {
+        animateResistanceRoll(prevOhms, nominalOhms);
+      } else {
+        document.getElementById('formattedResistance').textContent = formattedNominal;
+      }
+
+      updateElectronFlow(nominalOhms);
+
+      document.getElementById('toleranceDisplay').textContent = `±${cTol.tol}%`;
       document.getElementById('rawOhmsBadge').textContent = `${formatNumber(nominalOhms)} Ω`;
       document.getElementById('minResistance').textContent = formatOhms(minOhms);
       document.getElementById('maxResistance').textContent = formatOhms(maxOhms);
 
-      // Update 4-step breakdown
-      document.getElementById('step1Text').textContent = `(${c1.digit} × 10) + ${c2.digit} = ${sigDigits}`;
-      document.getElementById('step2Text').textContent = `${sigDigits} × ${formatNumber(c3.mult)} = ${formatNumber(nominalOhms)} Ω (${formattedNominal})`;
-      document.getElementById('step3Text').textContent = `${formatNumber(nominalOhms)} Ω × ${c4.tol}% = ±${formatNumber(marginOhms)} Ω`;
+      // Update Step-by-Step Breakdown
+      document.getElementById('step1Text').textContent = bandMode === 5
+        ? `(${c1.digit} × 100) + (${c2.digit} × 10) + ${c3Digit.digit} = ${sigDigits}`
+        : `(${c1.digit} × 10) + ${c2.digit} = ${sigDigits}`;
+      document.getElementById('step2Text').textContent = `${sigDigits} × ${formatNumber(cMult.mult)} = ${formatNumber(nominalOhms)} Ω (${formattedNominal})`;
+      document.getElementById('step3Text').textContent = `${formatNumber(nominalOhms)} Ω × ${cTol.tol}% = ±${formatNumber(marginOhms)} Ω`;
       document.getElementById('step4Text').textContent = `${formatNumber(minOhms)} Ω – ${formatNumber(maxOhms)} Ω`;
+
+      // Re-verify multimeter reading if user has entered one
+      verifyMultimeterSpec();
     }
 
-    function resetToDefault() {
-      document.getElementById('band1Select').value = 'yellow';
-      document.getElementById('band2Select').value = 'violet';
-      document.getElementById('band3Select').value = 'red';
-      document.getElementById('band4Select').value = 'gold';
-      updateCalculator();
+    // 7. REVERSE CALCULATOR (OHMS -> BANDS)
+    function handleReverseLookup(e) {
+      e.preventDefault();
+      const inputStr = document.getElementById('reverseInput').value;
+      const statusEl = document.getElementById('reverseStatus');
+      const targetOhms = parseResistanceInput(inputStr);
+
+      if (!targetOhms) {
+        statusEl.innerHTML = '<span class="text-rose-400">Invalid format. Try values like 4.7k, 330, 10k, or 1.5M.</span>';
+        return;
+      }
+
+      if (bandMode === 5) {
+        let exp = Math.floor(Math.log10(targetOhms)) - 2;
+        exp = Math.max(-2, Math.min(9, exp));
+        let sig = Math.round(targetOhms / Math.pow(10, exp));
+        if (sig >= 1000 && exp < 9) {
+          sig = 100;
+          exp += 1;
+        }
+        sig = Math.max(100, Math.min(999, sig));
+
+        const d1 = Math.floor(sig / 100);
+        const d2 = Math.floor((sig % 100) / 10);
+        const d3 = sig % 10;
+
+        document.getElementById('band1Select').value = COLOR_DATA.find((c) => c.digit === d1).key;
+        document.getElementById('band2Select').value = COLOR_DATA.find((c) => c.digit === d2).key;
+        document.getElementById('bandDigit3Select').value = COLOR_DATA.find((c) => c.digit === d3).key;
+        document.getElementById('bandMultSelect').value = COLOR_DATA.find((c) => c.exp === exp).key;
+
+        updateCalculator(true, [1, 2, 3, 4]);
+      } else {
+        let exp = Math.floor(Math.log10(targetOhms)) - 1;
+        exp = Math.max(-2, Math.min(9, exp));
+        let sig = Math.round(targetOhms / Math.pow(10, exp));
+        if (sig >= 100 && exp < 9) {
+          sig = 10;
+          exp += 1;
+        }
+        sig = Math.max(10, Math.min(99, sig));
+
+        const d1 = Math.floor(sig / 10);
+        const d2 = sig % 10;
+
+        document.getElementById('band1Select').value = COLOR_DATA.find((c) => c.digit === d1).key;
+        document.getElementById('band2Select').value = COLOR_DATA.find((c) => c.digit === d2).key;
+        document.getElementById('bandMultSelect').value = COLOR_DATA.find((c) => c.exp === exp).key;
+
+        updateCalculator(true, [1, 2, 3]);
+      }
+
+      const matchedFormatted = formatOhms(currentNominalOhms);
+      const isExact = Math.abs(currentNominalOhms - targetOhms) / targetOhms < 0.001;
+      statusEl.innerHTML = isExact
+        ? `<span class="text-emerald-400">Exact match applied: <strong>${matchedFormatted}</strong></span>`
+        : `<span class="text-cyan-400">Nearest standard band match applied: <strong>${matchedFormatted}</strong></span>`;
     }
 
+    // 8. MULTIMETER TOLERANCE VERIFIER
+    function verifyMultimeterSpec() {
+      const raw = document.getElementById('measuredInput').value;
+      const box = document.getElementById('toleranceResultBox');
+
+      if (!raw.trim()) {
+        box.innerHTML = '<span class="text-slate-400">Enter your multimeter reading to verify if the component is within tolerance.</span>';
+        return;
+      }
+
+      const measured = parseResistanceInput(raw);
+      if (!measured) {
+        box.innerHTML = '<span class="text-rose-400">Invalid reading. Enter a number like 4.58k or 4580.</span>';
+        return;
+      }
+
+      const errorPct = ((measured - currentNominalOhms) / currentNominalOhms) * 100;
+      const sign = errorPct >= 0 ? '+' : '';
+      const eps = currentNominalOhms * 1e-9;
+      const inSpec = measured >= (currentMinOhms - eps) && measured <= (currentMaxOhms + eps);
+
+      if (inSpec) {
+        box.innerHTML = `
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+              PASS &bull; IN SPEC
+            </span>
+            <span class="text-slate-300">Error: <strong class="text-emerald-400">${sign}${errorPct.toFixed(2)}%</strong> (Limit: &plusmn;${currentTolerancePct}%)</span>
+          </div>
+        `;
+      } else {
+        box.innerHTML = `
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/30 font-semibold">
+              FAIL &bull; OUT OF SPEC
+            </span>
+            <span class="text-slate-300">Error: <strong class="text-rose-400">${sign}${errorPct.toFixed(2)}%</strong> (Limit: &plusmn;${currentTolerancePct}%)</span>
+          </div>
+        `;
+      }
+    }
+
+    // 9. EXPORT, SHARE & RESET ACTIONS
     function copyResultToClipboard() {
       const resistance = document.getElementById('formattedResistance').textContent;
       const tolerance = document.getElementById('toleranceDisplay').textContent;
       const bands = document.getElementById('bandSummaryPill').textContent;
-      const textToCopy = `${resistance} ${tolerance} (${bands})`;
+      const textToCopy = `${resistance} ${tolerance} [${bandMode}-Band: ${bands}]`;
 
       navigator.clipboard.writeText(textToCopy).then(() => {
-        const copyBtnText = document.getElementById('copyBtnText');
-        copyBtnText.textContent = 'Copied!';
-        setTimeout(() => {
-          copyBtnText.textContent = 'Copy Result';
-        }, 1800);
+        const btnText = document.getElementById('copyBtnText');
+        btnText.textContent = 'Copied!';
+        setTimeout(() => (btnText.textContent = 'Copy Result'), 1800);
       });
     }
 
-    // 5. EVENT LISTENERS & INITIALIZATION
+    function copyShareLink() {
+      const keys = [
+        document.getElementById('band1Select').value,
+        document.getElementById('band2Select').value,
+      ];
+      if (bandMode === 5) keys.push(document.getElementById('bandDigit3Select').value);
+      keys.push(document.getElementById('bandMultSelect').value);
+      keys.push(document.getElementById('bandTolSelect').value);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set('mode', bandMode);
+      url.searchParams.set('b', keys.join(','));
+      window.history.replaceState(null, '', url.toString());
+
+      navigator.clipboard.writeText(url.toString()).then(() => {
+        const btnText = document.getElementById('shareBtnText');
+        btnText.textContent = 'Link Copied!';
+        setTimeout(() => (btnText.textContent = 'Share Link'), 1800);
+      });
+    }
+
+    function downloadResistorPng() {
+      const svgEl = document.getElementById('resistorSvg');
+      const clone = svgEl.cloneNode(true);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      clone.setAttribute('width', '1360');
+      clone.setAttribute('height', '370');
+
+      const svgString = new XMLSerializer().serializeToString(clone);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1360;
+        canvas.height = 460;
+        const ctx = canvas.getContext('2d');
+
+        // Dark slate card background
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw SVG resistor
+        ctx.drawImage(img, 0, 15, 1360, 370);
+
+        // Draw caption footer for lab reports
+        const resText = document.getElementById('formattedResistance').textContent;
+        const tolText = document.getElementById('toleranceDisplay').textContent;
+        const bandText = document.getElementById('bandSummaryPill').textContent;
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 28px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${resText} ${tolText}   |   ${bandText}`, canvas.width / 2, 422);
+
+        URL.revokeObjectURL(url);
+
+        const link = document.createElement('a');
+        link.download = `resistor-${resText.replace(/\s+/g, '')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        const btnText = document.getElementById('pngBtnText');
+        btnText.textContent = 'Saved!';
+        setTimeout(() => (btnText.textContent = 'Save PNG'), 1800);
+      };
+      img.src = url;
+    }
+
+    function resetToDefault() {
+      setBandMode(4, true);
+      document.getElementById('band1Select').value = 'yellow';
+      document.getElementById('band2Select').value = 'violet';
+      document.getElementById('bandDigit3Select').value = 'black';
+      document.getElementById('bandMultSelect').value = 'red';
+      document.getElementById('bandTolSelect').value = 'gold';
+      document.getElementById('reverseInput').value = '';
+      document.getElementById('measuredInput').value = '';
+      document.getElementById('reverseStatus').textContent = 'Enter any target resistance to highlight matching color bands.';
+      window.history.replaceState(null, '', window.location.pathname);
+      updateCalculator(true, [1, 2, 3, 4]);
+    }
+
+    function loadFromUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const modeParam = parseInt(params.get('mode'), 10);
+      const bandsParam = params.get('b');
+
+      if (!bandsParam) return false;
+      const keys = bandsParam.split(',');
+
+      if (modeParam === 5 && keys.length === 5) {
+        setBandMode(5, true);
+        document.getElementById('band1Select').value = keys[0];
+        document.getElementById('band2Select').value = keys[1];
+        document.getElementById('bandDigit3Select').value = keys[2];
+        document.getElementById('bandMultSelect').value = keys[3];
+        document.getElementById('bandTolSelect').value = keys[4];
+        updateCalculator(false);
+        return true;
+      } else if (keys.length === 4) {
+        setBandMode(4, true);
+        document.getElementById('band1Select').value = keys[0];
+        document.getElementById('band2Select').value = keys[1];
+        document.getElementById('bandMultSelect').value = keys[2];
+        document.getElementById('bandTolSelect').value = keys[3];
+        updateCalculator(false);
+        return true;
+      }
+      return false;
+    }
+
+    // 10. EVENT LISTENERS & INITIALIZATION
     document.addEventListener('DOMContentLoaded', () => {
       populateDropdowns();
-      populateReferenceTable();
-      resetToDefault();
 
-      ['band1Select', 'band2Select', 'band3Select', 'band4Select'].forEach((id) => {
-        document.getElementById(id).addEventListener('change', updateCalculator);
-      });
+      if (!loadFromUrlParams()) {
+        resetToDefault();
+      }
 
-      document.getElementById('resetBtn').addEventListener('click', resetToDefault);
+      // Dropdown listeners with per-band pulse animation
+      document.getElementById('band1Select').addEventListener('change', () => updateCalculator(true, [1]));
+      document.getElementById('band2Select').addEventListener('change', () => updateCalculator(true, [2]));
+      document.getElementById('bandDigit3Select').addEventListener('change', () => updateCalculator(true, [3]));
+      document.getElementById('bandMultSelect').addEventListener('change', () => updateCalculator(true, [bandMode === 5 ? 4 : 3]));
+      document.getElementById('bandTolSelect').addEventListener('change', () => updateCalculator(true, [bandMode === 5 ? 5 : 4]));
+
+      // Click directly on SVG resistor bands to cycle colors
+      const cycleSelect = (selectId, bandNum) => {
+        const sel = document.getElementById(selectId);
+        sel.selectedIndex = (sel.selectedIndex + 1) % sel.options.length;
+        updateCalculator(true, [bandNum]);
+      };
+
+      document.getElementById('band1Rect').addEventListener('click', () => cycleSelect('band1Select', 1));
+      document.getElementById('band2Rect').addEventListener('click', () => cycleSelect('band2Select', 2));
+      document.getElementById('band3Rect').addEventListener('click', () => cycleSelect(bandMode === 5 ? 'bandDigit3Select' : 'bandMultSelect', 3));
+      document.getElementById('band4Rect').addEventListener('click', () => cycleSelect(bandMode === 5 ? 'bandMultSelect' : 'bandTolSelect', 4));
+      document.getElementById('band5Rect').addEventListener('click', () => cycleSelect('bandTolSelect', 5));
+
+      // Mode toggle & action buttons
+      document.getElementById('mode4Btn').addEventListener('click', () => setBandMode(4));
+      document.getElementById('mode5Btn').addEventListener('click', () => setBandMode(5));
       document.getElementById('copyBtn').addEventListener('click', copyResultToClipboard);
+      document.getElementById('shareBtn').addEventListener('click', copyShareLink);
+      document.getElementById('pngBtn').addEventListener('click', downloadResistorPng);
+      document.getElementById('resetBtn').addEventListener('click', resetToDefault);
+
+      // Reverse calculator & Multimeter tolerance verifier
+      document.getElementById('reverseForm').addEventListener('submit', handleReverseLookup);
+      document.getElementById('measuredInput').addEventListener('input', verifyMultimeterSpec);
+      document.getElementById('clearMeasuredBtn').addEventListener('click', () => {
+        document.getElementById('measuredInput').value = '';
+        verifyMultimeterSpec();
+      });
     });
   </script>
 </body>
