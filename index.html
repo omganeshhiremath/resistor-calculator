@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4-Band Resistor Color Code Calculator | ECE Lab Tool</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-cyan-500/30">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-md sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12h4l2-5 4 10 4-10 2 5h4" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Resistor Color Code Calculator</h1>
+            <span class="px-2 py-0.5 text-xs font-mono font-medium rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">4-Band EIA</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400">Interactive ECE Lab Utility &amp; Resistance Formula Verifier</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button id="copyBtn" type="button" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer">
+          <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          <span id="copyBtnText">Copy Result</span>
+        </button>
+        <button id="resetBtn" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 transition cursor-pointer">
+          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+          Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+
+    <!-- Visual Resistor Preview & Band Selectors -->
+    <section class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
+      <div class="flex items-center justify-between gap-2 mb-4">
+        <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Component Preview</span>
+        <span id="bandSummaryPill" class="px-3 py-1 rounded-full text-xs font-mono bg-slate-800/90 text-slate-200 border border-slate-700">
+          Yellow &bull; Violet &bull; Red &bull; Gold
+        </span>
+      </div>
+
+      <!-- Interactive SVG Resistor -->
+      <div class="w-full overflow-x-auto py-3">
+        <svg viewBox="0 0 680 185" class="w-full max-w-2xl mx-auto h-auto select-none" role="img" aria-label="4-Band Resistor Diagram">
+          <defs>
+            <linearGradient id="leadGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#94a3b8" />
+              <stop offset="45%" stop-color="#f1f5f9" />
+              <stop offset="100%" stop-color="#475569" />
+            </linearGradient>
+            <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#f3e5c8" />
+              <stop offset="30%" stop-color="#e5cfa6" />
+              <stop offset="75%" stop-color="#c9ad7c" />
+              <stop offset="100%" stop-color="#9c8054" />
+            </linearGradient>
+            <linearGradient id="goldBand" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#fde047" />
+              <stop offset="45%" stop-color="#eab308" />
+              <stop offset="100%" stop-color="#854d0e" />
+            </linearGradient>
+            <linearGradient id="silverBand" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#f8fafc" />
+              <stop offset="45%" stop-color="#cbd5e1" />
+              <stop offset="100%" stop-color="#64748b" />
+            </linearGradient>
+          </defs>
+
+          <!-- Metallic Axial Leads -->
+          <rect x="40" y="75" width="135" height="10" rx="3" fill="url(#leadGrad)" />
+          <rect x="505" y="75" width="135" height="10" rx="3" fill="url(#leadGrad)" />
+
+          <!-- Contoured Ceramic Resistor Body -->
+          <path d="M 172 46 C 172 37, 182 34, 200 34 L 222 34 C 232 34, 238 40, 248 40 L 432 40 C 442 40, 448 34, 458 34 L 480 34 C 498 34, 508 37, 508 46 L 508 114 C 508 123, 498 126, 480 126 L 458 126 C 448 126, 442 120, 432 120 L 248 120 C 238 120, 232 126, 222 126 L 200 126 C 182 126, 172 123, 172 114 Z" fill="url(#bodyGrad)" stroke="#78613c" stroke-width="1.5" />
+
+          <!-- Color Bands -->
+          <rect id="band1Rect" x="212" y="34.5" width="22" height="91" rx="2" fill="#eab308" />
+          <rect id="band2Rect" x="272" y="40.5" width="22" height="79" rx="1.5" fill="#7c3aed" />
+          <rect id="band3Rect" x="332" y="40.5" width="22" height="79" rx="1.5" fill="#dc2626" />
+          <rect id="band4Rect" x="444" y="34.5" width="22" height="91" rx="2" fill="url(#goldBand)" />
+
+          <!-- Subtle Top Specular Highlight -->
+          <path d="M 185 43 L 495 43" stroke="#ffffff" stroke-opacity="0.28" stroke-width="3" stroke-linecap="round" />
+
+          <!-- Pointer Lines & Labels -->
+          <line x1="223" y1="128" x2="223" y2="148" stroke="#64748b" stroke-width="1.2" />
+          <text x="223" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">1st Digit</text>
+
+          <line x1="283" y1="122" x2="283" y2="148" stroke="#64748b" stroke-width="1.2" />
+          <text x="283" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">2nd Digit</text>
+
+          <line x1="343" y1="122" x2="343" y2="148" stroke="#64748b" stroke-width="1.2" />
+          <text x="349" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">Multiplier</text>
+
+          <line x1="455" y1="128" x2="455" y2="148" stroke="#64748b" stroke-width="1.2" />
+          <text x="455" y="164" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">Tolerance</text>
+        </svg>
+      </div>
+
+      <!-- Four Band Dropdown Selectors -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-slate-800/80">
+        <div>
+          <label for="band1Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
+            <span>Band 1 &bull; 1st Digit</span>
+            <span id="dot1" class="w-3 h-3 rounded-full border border-white/20 bg-yellow-500"></span>
+          </label>
+          <select id="band1Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
+        </div>
+
+        <div>
+          <label for="band2Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
+            <span>Band 2 &bull; 2nd Digit</span>
+            <span id="dot2" class="w-3 h-3 rounded-full border border-white/20 bg-violet-600"></span>
+          </label>
+          <select id="band2Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
+        </div>
+
+        <div>
+          <label for="band3Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
+            <span>Band 3 &bull; Multiplier</span>
+            <span id="dot3" class="w-3 h-3 rounded-full border border-white/20 bg-red-600"></span>
+          </label>
+          <select id="band3Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
+        </div>
+
+        <div>
+          <label for="band4Select" class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">
+            <span>Band 4 &bull; Tolerance</span>
+            <span id="dot4" class="w-3 h-3 rounded-full border border-white/20 bg-amber-400"></span>
+          </label>
+          <select id="band4Select" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition"></select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results & Formula Breakdown Grid -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left: Nominal Resistance & Multimeter Range -->
+      <div class="lg:col-span-5 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 flex flex-col justify-between shadow-xl">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Nominal Resistance</span>
+            <span id="rawOhmsBadge" class="px-2.5 py-0.5 rounded-md text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700">4,700 &Omega;</span>
+          </div>
+
+          <div class="flex items-baseline gap-2.5 my-2">
+            <span id="formattedResistance" class="text-4xl sm:text-5xl font-bold tracking-tight text-white font-mono">4.7 k&Omega;</span>
+            <span id="toleranceDisplay" class="text-lg sm:text-xl font-semibold text-cyan-400 font-mono">&plusmn;5%</span>
+          </div>
+
+          <p class="text-xs text-slate-400 leading-relaxed mt-2">
+            Expected multimeter measurement range due to manufacturing tolerance:
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-slate-800/80">
+          <div class="rounded-xl bg-slate-950/90 border border-slate-800 p-3">
+            <span class="block text-[11px] font-mono uppercase text-slate-400">Min Resistance</span>
+            <span id="minResistance" class="block text-sm sm:text-base font-mono font-semibold text-emerald-400 mt-0.5">4.465 k&Omega;</span>
+          </div>
+          <div class="rounded-xl bg-slate-950/90 border border-slate-800 p-3">
+            <span class="block text-[11px] font-mono uppercase text-slate-400">Max Resistance</span>
+            <span id="maxResistance" class="block text-sm sm:text-base font-mono font-semibold text-amber-400 mt-0.5">4.935 k&Omega;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Step-by-Step Formula Breakdown -->
+      <div class="lg:col-span-7 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
+        <div class="flex items-center justify-between gap-2 flex-wrap mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <h2 class="text-xs font-mono uppercase tracking-wider text-slate-300">Step-by-Step Formula Breakdown</h2>
+          </div>
+          <span class="text-xs font-mono text-slate-400">R = ((B1 &times; 10) + B2) &times; M</span>
+        </div>
+
+        <div class="space-y-2.5 text-xs sm:text-sm font-mono">
+          <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-950/90 border border-slate-800/90 px-3.5 py-2.5">
+            <span class="text-slate-400">1. Combine Significant Digits:</span>
+            <span id="step1Text" class="text-slate-100 font-semibold">(4 &times; 10) + 7 = 47</span>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-950/90 border border-slate-800/90 px-3.5 py-2.5">
+            <span class="text-slate-400">2. Apply Band 3 Multiplier:</span>
+            <span id="step2Text" class="text-cyan-400 font-semibold">47 &times; 100 = 4,700 &Omega; (4.7 k&Omega;)</span>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-950/90 border border-slate-800/90 px-3.5 py-2.5">
+            <span class="text-slate-400">3. Compute Tolerance Margin:</span>
+            <span id="step3Text" class="text-amber-300 font-semibold">4,700 &Omega; &times; 5% = &plusmn;235 &Omega;</span>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-950/90 border border-slate-800/90 px-3.5 py-2.5">
+            <span class="text-slate-400">4. Multimeter Bounds:</span>
+            <span id="step4Text" class="text-emerald-400 font-semibold">4,465 &Omega; &ndash; 4,935 &Omega;</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EIA Reference Table -->
+    <section class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 shadow-xl">
+      <h2 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-4">Standard EIA 4-Band Color Reference Chart</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400 font-mono text-xs">
+              <th class="py-2.5 px-3">Color</th>
+              <th class="py-2.5 px-3">Band 1 (1st Digit)</th>
+              <th class="py-2.5 px-3">Band 2 (2nd Digit)</th>
+              <th class="py-2.5 px-3">Band 3 (Multiplier)</th>
+              <th class="py-2.5 px-3">Band 4 (Tolerance)</th>
+            </tr>
+          </thead>
+          <tbody id="referenceTableBody" class="divide-y divide-slate-800/60 font-mono text-slate-200"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 1. STANDARD EIA RESISTOR COLOR DATA
+    const COLOR_DATA = [
+      { key: 'black',  name: 'Black',  hex: '#18181b', digit: 0, mult: 1,          multLabel: '×1 Ω (10⁰)',      tol: null },
+      { key: 'brown',  name: 'Brown',  hex: '#78350f', digit: 1, mult: 10,         multLabel: '×10 Ω (10¹)',     tol: 1 },
+      { key: 'red',    name: 'Red',    hex: '#dc2626', digit: 2, mult: 100,        multLabel: '×100 Ω (10²)',    tol: 2 },
+      { key: 'orange', name: 'Orange', hex: '#ea580c', digit: 3, mult: 1000,       multLabel: '×1 kΩ (10³)',     tol: null },
+      { key: 'yellow', name: 'Yellow', hex: '#eab308', digit: 4, mult: 10000,      multLabel: '×10 kΩ (10⁴)',    tol: null },
+      { key: 'green',  name: 'Green',  hex: '#16a34a', digit: 5, mult: 100000,     multLabel: '×100 kΩ (10⁵)',   tol: 0.5 },
+      { key: 'blue',   name: 'Blue',   hex: '#2563eb', digit: 6, mult: 1000000,    multLabel: '×1 MΩ (10⁶)',     tol: 0.25 },
+      { key: 'violet', name: 'Violet', hex: '#7c3aed', digit: 7, mult: 10000000,   multLabel: '×10 MΩ (10⁷)',    tol: 0.1 },
+      { key: 'gray',   name: 'Gray',   hex: '#64748b', digit: 8, mult: 100000000,  multLabel: '×100 MΩ (10⁸)',   tol: 0.05 },
+      { key: 'white',  name: 'White',  hex: '#f8fafc', digit: 9, mult: 1000000000, multLabel: '×1 GΩ (10⁹)',     tol: null },
+      { key: 'gold',   name: 'Gold',   hex: '#eab308', svgFill: 'url(#goldBand)',   digit: null, mult: 0.1,  multLabel: '×0.1 Ω (10⁻¹)', tol: 5 },
+      { key: 'silver', name: 'Silver', hex: '#cbd5e1', svgFill: 'url(#silverBand)', digit: null, mult: 0.01, multLabel: '×0.01 Ω (10⁻²)', tol: 10 }
+    ];
+
+    // 2. UNIT & NUMBER FORMATTERS
+    function formatOhms(value) {
+      if (value >= 1e9) return `${parseFloat((value / 1e9).toFixed(3))} GΩ`;
+      if (value >= 1e6) return `${parseFloat((value / 1e6).toFixed(3))} MΩ`;
+      if (value >= 1e3) return `${parseFloat((value / 1e3).toFixed(3))} kΩ`;
+      return `${parseFloat(value.toFixed(3))} Ω`;
+    }
+
+    function formatNumber(value) {
+      return Number(value.toFixed(3)).toLocaleString('en-US');
+    }
+
+    // 3. POPULATE DROPDOWNS & REFERENCE TABLE
+    function populateDropdowns() {
+      const b1 = document.getElementById('band1Select');
+      const b2 = document.getElementById('band2Select');
+      const b3 = document.getElementById('band3Select');
+      const b4 = document.getElementById('band4Select');
+
+      COLOR_DATA.forEach((c) => {
+        if (c.digit !== null && c.digit !== 0) {
+          b1.add(new Option(`${c.name} (${c.digit})`, c.key));
+        }
+        if (c.digit !== null) {
+          b2.add(new Option(`${c.name} (${c.digit})`, c.key));
+        }
+        if (c.mult !== null) {
+          b3.add(new Option(`${c.name} (${c.multLabel})`, c.key));
+        }
+        if (c.tol !== null) {
+          b4.add(new Option(`${c.name} (±${c.tol}%)`, c.key));
+        }
+      });
+    }
+
+    function populateReferenceTable() {
+      const tbody = document.getElementById('referenceTableBody');
+      COLOR_DATA.forEach((c) => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-800/40 transition';
+        row.innerHTML = `
+          <td class="py-2 px-3 flex items-center gap-2.5">
+            <span class="w-3.5 h-3.5 rounded-sm border border-white/20 shrink-0" style="background-color: ${c.hex};"></span>
+            <span class="font-sans font-medium text-slate-100">${c.name}</span>
+          </td>
+          <td class="py-2 px-3 text-slate-300">${c.digit !== null && c.digit !== 0 ? c.digit : '—'}</td>
+          <td class="py-2 px-3 text-slate-300">${c.digit !== null ? c.digit : '—'}</td>
+          <td class="py-2 px-3 text-cyan-400">${c.multLabel}</td>
+          <td class="py-2 px-3 text-amber-300">${c.tol !== null ? `±${c.tol}%` : '—'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // 4. CORE CALCULATION & UI UPDATE
+    function updateCalculator() {
+      const c1 = COLOR_DATA.find((c) => c.key === document.getElementById('band1Select').value);
+      const c2 = COLOR_DATA.find((c) => c.key === document.getElementById('band2Select').value);
+      const c3 = COLOR_DATA.find((c) => c.key === document.getElementById('band3Select').value);
+      const c4 = COLOR_DATA.find((c) => c.key === document.getElementById('band4Select').value);
+
+      // Update SVG band colors & indicator dots
+      document.getElementById('band1Rect').setAttribute('fill', c1.svgFill || c1.hex);
+      document.getElementById('band2Rect').setAttribute('fill', c2.svgFill || c2.hex);
+      document.getElementById('band3Rect').setAttribute('fill', c3.svgFill || c3.hex);
+      document.getElementById('band4Rect').setAttribute('fill', c4.svgFill || c4.hex);
+
+      document.getElementById('dot1').style.backgroundColor = c1.hex;
+      document.getElementById('dot2').style.backgroundColor = c2.hex;
+      document.getElementById('dot3').style.backgroundColor = c3.hex;
+      document.getElementById('dot4').style.backgroundColor = c4.hex;
+
+      document.getElementById('bandSummaryPill').textContent = `${c1.name} • ${c2.name} • ${c3.name} • ${c4.name}`;
+
+      // Resistance math: ((B1 * 10) + B2) * Multiplier
+      const sigDigits = (c1.digit * 10) + c2.digit;
+      const nominalOhms = sigDigits * c3.mult;
+      const marginOhms = nominalOhms * (c4.tol / 100);
+      const minOhms = nominalOhms - marginOhms;
+      const maxOhms = nominalOhms + marginOhms;
+
+      const formattedNominal = formatOhms(nominalOhms);
+
+      document.getElementById('formattedResistance').textContent = formattedNominal;
+      document.getElementById('toleranceDisplay').textContent = `±${c4.tol}%`;
+      document.getElementById('rawOhmsBadge').textContent = `${formatNumber(nominalOhms)} Ω`;
+      document.getElementById('minResistance').textContent = formatOhms(minOhms);
+      document.getElementById('maxResistance').textContent = formatOhms(maxOhms);
+
+      // Update 4-step breakdown
+      document.getElementById('step1Text').textContent = `(${c1.digit} × 10) + ${c2.digit} = ${sigDigits}`;
+      document.getElementById('step2Text').textContent = `${sigDigits} × ${formatNumber(c3.mult)} = ${formatNumber(nominalOhms)} Ω (${formattedNominal})`;
+      document.getElementById('step3Text').textContent = `${formatNumber(nominalOhms)} Ω × ${c4.tol}% = ±${formatNumber(marginOhms)} Ω`;
+      document.getElementById('step4Text').textContent = `${formatNumber(minOhms)} Ω – ${formatNumber(maxOhms)} Ω`;
+    }
+
+    function resetToDefault() {
+      document.getElementById('band1Select').value = 'yellow';
+      document.getElementById('band2Select').value = 'violet';
+      document.getElementById('band3Select').value = 'red';
+      document.getElementById('band4Select').value = 'gold';
+      updateCalculator();
+    }
+
+    function copyResultToClipboard() {
+      const resistance = document.getElementById('formattedResistance').textContent;
+      const tolerance = document.getElementById('toleranceDisplay').textContent;
+      const bands = document.getElementById('bandSummaryPill').textContent;
+      const textToCopy = `${resistance} ${tolerance} (${bands})`;
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const copyBtnText = document.getElementById('copyBtnText');
+        copyBtnText.textContent = 'Copied!';
+        setTimeout(() => {
+          copyBtnText.textContent = 'Copy Result';
+        }, 1800);
+      });
+    }
+
+    // 5. EVENT LISTENERS & INITIALIZATION
+    document.addEventListener('DOMContentLoaded', () => {
+      populateDropdowns();
+      populateReferenceTable();
+      resetToDefault();
+
+      ['band1Select', 'band2Select', 'band3Select', 'band4Select'].forEach((id) => {
+        document.getElementById(id).addEventListener('change', updateCalculator);
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', resetToDefault);
+      document.getElementById('copyBtn').addEventListener('click', copyResultToClipboard);
+    });
+  </script>
+</body>
+</html>
